@@ -1,14 +1,13 @@
 ---
 
-# 🚀 Node App Deployment to AWS ECS (Fargate) – Task Only
+# 🚀 Node App Deployment to AWS ECS (Fargate)
 
 This guide explains how to:
 
 1. Create a Docker image
 2. Push it to Docker Hub
 3. Copy the image from Docker Hub to AWS ECR
-4. Run the application using **ECS Fargate (Task Only)**
-   ❌ **No ECS Service used**
+4. Deploy the app using **ECS Fargate** with a **Load Balancer**
 
 ---
 
@@ -17,7 +16,7 @@ This guide explains how to:
 * Ubuntu EC2 instance
 * AWS account
 * Docker Hub account
-* IAM permissions for ECR and ECS
+* IAM permissions for ECR, ECS, EC2, ELB
 * AWS CLI configured (`aws configure`)
 
 ---
@@ -90,8 +89,8 @@ docker push 457650192798.dkr.ecr.us-east-1.amazonaws.com/myrepo:latest
 1. Go to **ECS → Clusters**
 2. Click **Create Cluster**
 3. Choose **Networking only (Fargate)**
-4. Give the cluster a name
-5. Click **Create**
+4. Name the cluster
+5. Create
 
 ---
 
@@ -103,13 +102,13 @@ docker push 457650192798.dkr.ecr.us-east-1.amazonaws.com/myrepo:latest
 4. Configure:
 
    * Task name
-   * CPU & Memory
+   * Task memory & CPU
 5. Container configuration:
 
-   * **Container name**: app-name
    * **Image**:
      `457650192798.dkr.ecr.us-east-1.amazonaws.com/myrepo:latest`
-   * **Port mapping**:
+   * **Container name**: app-name
+   * **Port mappings**:
 
      * Container port: `8000`
 6. **Health Check**:
@@ -123,48 +122,44 @@ docker push 457650192798.dkr.ecr.us-east-1.amazonaws.com/myrepo:latest
 
 ---
 
-## 🔹 Step 9: Run Task (Without Service)
+## 🔹 Step 9: Create Service
 
-1. Go to **ECS → Clusters**
-2. Select your cluster
-3. Click **Run new task**
-4. Launch type: **Fargate**
-5. Task definition: select created task
-6. Networking:
+1. Go to **ECS → Clusters → Your Cluster**
+2. Click **Create Service**
+3. Configure:
 
-   * Select VPC
-   * Select subnets
-   * Enable **Auto-assign public IP**
-   * Security group:
+   * Launch type: **Fargate**
+   * Task definition: select created task
+   * Service name
+4. Load Balancer:
 
-     * Allow inbound **8000**
-7. Click **Run Task**
+   * Type: **Application Load Balancer**
+   * Listener port: **80**
+   * Target group port: **8000**
+5. Enable **Auto Scaling** (optional)
+6. Click **Create Service**
 
 ---
 
 ## 🔹 Step 10: Access the Application
 
-1. Go to **ECS → Clusters → Tasks**
-2. Click the running task
-3. Copy the **Public IP**
-4. Open in browser:
+1. Go to **EC2 → Load Balancers**
+2. Copy the **DNS name**
+3. Open in browser:
 
    ```text
-   http://<public-ip>:8000
+   http://<load-balancer-dns>
    ```
 
 ---
 
-## 🔹 Notes
+## 🔹 Troubleshooting
 
-* This task will **stop automatically** if the container exits
-* No load balancer is used
-* Best for:
+* If app is not accessible:
 
-  * Testing
-  * One-time jobs
-  * Debugging
-  * Proof of concept
+  * Ensure **port 80** is open in the Load Balancer security group
+  * Ensure **port 8000** is open in the ECS task security group
+  * Verify container is listening on `8000`
 
 ---
 
@@ -172,8 +167,11 @@ docker push 457650192798.dkr.ecr.us-east-1.amazonaws.com/myrepo:latest
 
 Your Dockerized Node.js application is now:
 
-* Stored in **AWS ECR**
-* Running as a **standalone ECS Fargate Task**
-* Accessible via **Public IP**
+* Stored in **ECR**
+* Running on **ECS Fargate**
+* Publicly accessible via **Load Balancer DNS**
 
 ---
+
+
+
